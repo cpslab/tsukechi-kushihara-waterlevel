@@ -38,12 +38,18 @@ bool sendATCommand(const char* command , const int timeout) {
 bool sendBody(const char* command ) {
   MySerial0.write("AT+SHBOD=1024,10000\r\n"); 
   MySerial0.flush();
-  delay(3000);
+  delay(1000);
   MySerial0.write(command);
   MySerial0.flush();
+  String response = MySerial0.readStringUntil('\n');
+
+  String temp;
+  do {
+    temp = MySerial0.readStringUntil('\n');
+    delay(1000);
+    response += temp;
+  } while (temp == "OK"||temp == "ERROR" || temp == "");
   delay(3000);
-  unsigned long startTime = millis();
- String response = MySerial0.readStringUntil('\n');
 
 // エラーチェックとテキスト形式のレスポンスの出力
 if (response.indexOf("ERROR") != -1) {
@@ -120,15 +126,6 @@ void serial_send(float distance) {
   String distance_json = "\"distance\":" + String(distance);
   String All_data = "{" + distance_json +"}\r\n";
 
-// if (!sendATCommand("AT+SHBOD=1024,10000\r\n")) {
-//     Serial.println("Error: AT+SHBOD");
-//     return;
-//   }
-//   delay(15000);
-//   if (!sendATCommand(All_data.c_str())) {
-//     Serial.println("Error: JSON Data");
-//     return;
-//   }
 
   if (!sendBody(All_data.c_str())) {
     Serial.println("Error: JSON Data");
