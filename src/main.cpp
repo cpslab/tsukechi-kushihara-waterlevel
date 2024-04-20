@@ -42,12 +42,14 @@ bool sendBody(const char* command ) {
   MySerial0.write(command);
   MySerial0.flush();
   String response = MySerial0.readStringUntil('\n');
-
+  Serial.println(response);
+  response += MySerial0.readStringUntil('\n');
   String temp;
   do {
     temp = MySerial0.readStringUntil('\n');
     delay(1000);
     response += temp;
+    
   } while (temp == "OK"||temp == "ERROR" || temp == "");
   delay(3000);
 
@@ -56,7 +58,6 @@ if (response.indexOf("ERROR") != -1) {
   Serial.println("Error in response");
   return false;
 } else {
-  Serial.print("Received Text: ");
   Serial.println(response);
   Serial.flush();
   return true;
