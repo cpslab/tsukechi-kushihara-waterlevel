@@ -12,6 +12,7 @@ int POSTTIMEOUT = 60000;
 int NORMALTIMEOUT = 5000;
 int SMALLTIMEOUT = 1000;
 
+
 int count = 0;
 float distance;
 
@@ -20,12 +21,12 @@ bool sendATCommand(const char* command , const int timeout) {
   MySerial0.flush();
   delay(5000);  // 応答を待つための適切な遅延を設定
 
-  while (Serial1.available()) {
-    char response = Serial1.read();
-    Serial.print(response);
+  while (MySerial0.available()) {
+    String response = MySerial0.readStringUntil('\n');
+    Serial.println(response);
 
     // エラーチェック
-    if (strstr(&response, "ERROR") != NULL) {
+    if  (response.indexOf("ERROR") != -1)  {
       return false;  // エラーが検出された場合
     }
   }
@@ -42,18 +43,7 @@ bool sendBody(const char* command ) {
   MySerial0.flush();
   delay(3000);
   unsigned long startTime = millis();
- String response = "";
- String hexString = ""; // 16進数形式のデータを格納するための文字列
-
- while (millis() - startTime < 5000) {
-  if (MySerial0.available()) {
-    char c = MySerial0.read();
-    char hex[4]; // 16進数変換用の一時バッファ
-    //sprintf(hex, "%02X ", (uint8_t)c); // 16進数形式に変換
-    hexString += String(hex); // 変換した16進数を追加
-    response += c;
-  }
-}
+ String response = MySerial0.readStringUntil('\n');
 
 // エラーチェックとテキスト形式のレスポンスの出力
 if (response.indexOf("ERROR") != -1) {
@@ -97,11 +87,7 @@ void serial_send(float distance) {
     return;
   }
   delay(SMALLTIMEOUT);
-  if (!sendATCommand("AT+CPSI?",NORMALTIMEOUT)) {
-    Serial.println("Error: AT+CPSI?");
-    return;
-  }
-  delay(SMALLTIMEOUT);
+
 
 
 
