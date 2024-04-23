@@ -43,7 +43,7 @@ bool sendBody(const char *command)
 {
     MySerial0.write("AT+SHBOD=1024,10000\r\n");
     MySerial0.flush();
-    delay(1000);
+    // delay(1000);
     MySerial0.write(command);
     MySerial0.flush();
     String response = MySerial0.readStringUntil('\n');
@@ -88,7 +88,7 @@ void serial_send(float distance)
         Serial.println("Error: AT+CGDCONT=1");
         return;
     }
-    delay(SMALLTIMEOUT);
+    delay(NORMALTIMEOUT);
     // for (int i = 0; i <= 5; i++) {
     if (!sendATCommand("AT+CNACT=0,1\r\n", BIGTIMEOUT))
     {
@@ -104,14 +104,14 @@ void serial_send(float distance)
         Serial.println("Error: AT+SHCONF URL");
         return;
     }
-    delay(SMALLTIMEOUT);
+    delay(NORMALTIMEOUT);
 
     if (!sendATCommand("AT+SHCONF=\"BODYLEN\",1024\r\n", NORMALTIMEOUT))
     {
         Serial.println("Error: AT+SHCONF BODYLEN");
         return;
     }
-    delay(SMALLTIMEOUT);
+    delay(NORMALTIMEOUT);
 
     if (!sendATCommand("AT+SHCONF=\"HEADERLEN\",350\r\n", NORMALTIMEOUT))
     {
@@ -205,7 +205,7 @@ void loop()
     delay(100);
     count += 1;
 
-    if (count > 20 && distance != -1)
+    if (count > 200 || distance != -1)
     {
         delay(5000);
         Serial.println("start");
