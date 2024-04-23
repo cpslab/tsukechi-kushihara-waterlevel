@@ -16,7 +16,7 @@ int SMALLTIMEOUT = 1000;
 unsigned char data[4] = {};
 
 int count = 0;
-float distance;
+float distance = -1;
 
 bool sendATCommand(const char *command, const int timeout)
 {
@@ -171,7 +171,6 @@ void setup()
 
 void loop()
 {
-    Serial.print("distance=");
     do
     {
         for (int i = 0; i < 4; i++)
@@ -206,7 +205,7 @@ void loop()
     delay(100);
     count += 1;
 
-    if (count > 30)
+    if (count > 20 && distance != -1)
     {
         delay(5000);
         Serial.println("start");
@@ -215,5 +214,6 @@ void loop()
         serial_send(distance/10);
         delay(15000);
         count = 0;
+        distance = -1;
     }
 }
