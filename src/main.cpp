@@ -36,6 +36,38 @@ bool sendATCommand(const char *command, const int timeout)
     return true;
 }
 
+bool connect()
+{
+    MySerial0.write("AT+CNACT=0,1\r\n");
+    MySerial0.flush();
+    delay(1000);
+    String response = MySerial0.readStringUntil('\n');
+    Serial.println(response);
+    response += MySerial0.readStringUntil('\n');
+    String temp;
+    do
+    {
+        temp = MySerial0.readStringUntil('\n');
+        delay(1000);
+        response += temp;
+
+    } while (temp == "OK" || temp == "ERROR" || temp == "");
+    delay(3000);
+
+    // エラーチェックとテキスト形式のレスポンスの出力
+    if (response.indexOf("ERROR") != -1)
+    {
+        Serial.println("Error in response");
+        return false;
+    }
+    else
+    {
+        Serial.println(response);
+        Serial.flush();
+        return true;
+    }
+}
+
 bool sendBody(const char *command)
 {
     MySerial0.write("AT+SHBOD=1024,10000\r\n");
@@ -87,7 +119,7 @@ void serial_send(float distance)
     }
     delay(SMALLTIMEOUT);
     // for (int i = 0; i <= 5; i++) {
-    if (!sendATCommand("AT+CNACT=0,1\r\n", BIGTIMEOUT))
+    if (!connect())
     {
         Serial.println("Error: AT+CNACT");
         delay(1000);
