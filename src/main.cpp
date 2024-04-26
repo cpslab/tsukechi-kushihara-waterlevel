@@ -179,4 +179,5 @@ void loop()
     delay(15000);
     count = 0;
     digitalWrite(ledPin, LOW); // センサ類電源をOFFにする
+    Serial.println("OFF");
 }
