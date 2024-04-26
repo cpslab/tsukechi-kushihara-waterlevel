@@ -202,7 +202,7 @@ void loop()
     delay(100);
     count += 1;
 
-    if (count > 500 && distance != -1)//デバッグで＆から変更
+    if (count > 200 || distance != -1)//デバッグで＆から変更
     {
     delay(5000);
     Serial.println("start");
