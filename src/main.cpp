@@ -5,6 +5,7 @@
 
 // Define two Serial devices mapped to the two internal UARTs
 HardwareSerial MySerial0(0);
+const int ledPin = 4; // Xiao C3のGPIO4ピンを使用
 
 int PORTLATE = 57600;
 int BIGTIMEOUT = 10000;
@@ -163,15 +164,19 @@ void setup()
     // Configure MySerial0 on pins TX=6 and RX=7 (-1, -1 means use the default)
     MySerial0.begin(PORTLATE, SERIAL_8N1, -1, -1);
     count = 0;
+    pinMode(ledPin, OUTPUT); // ピンを出力として設定
 }
 
 void loop()
 {
     delay(5000);
+    digitalWrite(ledPin, HIGH); // LEDをONにする
+    Serial.println("ON");
     Serial.println("start");
-    delay(1000);
     Serial.println("stand by");
     serial_send(10);
-    delay(15000);
+    digitalWrite(ledPin, LOW); // LEDをOFFにする
+    Serial.println("OFF");
+    delay(35000);
     count = 0;
 }
