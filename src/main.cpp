@@ -2,6 +2,8 @@
 #include <SPI.h>
 // Need this for the lower level access to set them up.
 #include <HardwareSerial.h>
+const int ledPin = 4; // Xiao C3のGPIO4ピンを使用
+
 
 // Define two Serial devices mapped to the two internal UARTs
 HardwareSerial MySerial0(0);
@@ -158,6 +160,9 @@ void setup()
     // Configure MySerial0 on pins TX=6 and RX=7 (-1, -1 means use the default)
     MySerial0.begin(PORTLATE, SERIAL_8N1, -1, -1);
     MySerial1.begin(9600, SERIAL_8N1, 9, 10);
+    pinMode(ledPin, OUTPUT); // ピンを出力として設定
+    digitalWrite(ledPin, HIGH); // センサ類電源をONにする
+    Serial.println("ON");
     count = 0;
 }
 
@@ -197,15 +202,19 @@ void loop()
     delay(100);
     count += 1;
 
-    if (count > 200 || distance != -1)
+    if (count > 500 && distance != -1)//デバッグで＆から変更
     {
-        delay(5000);
-        Serial.println("start");
-        delay(1000);
-        Serial.println("stand by");
-        serial_send(distance/10);
-        delay(15000);
-        count = 0;
-        distance = -1;
+    delay(5000);
+    Serial.println("start");
+    delay(1000);
+    Serial.println("stand by");
+    serial_send(distance/10);
+    count = 0;
+    digitalWrite(ledPin, LOW); // センサ類電源をOFFにする
+    Serial.println("OFF");
+    delay(15000);
+    digitalWrite(ledPin, HIGH); // センサ類電源をONにする
+    Serial.println("ON");
+    distance = -1;
     }
 }
