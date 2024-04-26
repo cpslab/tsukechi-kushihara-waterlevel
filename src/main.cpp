@@ -5,9 +5,11 @@
 const int ledPin = 4; // Xiao C3のGPIO4ピンを使用
 
 
+
 // Define two Serial devices mapped to the two internal UARTs
 HardwareSerial MySerial0(0);
 HardwareSerial MySerial1(1);
+
 
 int PORTLATE = 57600;
 int BIGTIMEOUT = 10000;
@@ -17,142 +19,151 @@ int SMALLTIMEOUT = 1000;
 
 unsigned char data[4] = {};
 
+
 int count = 0;
 float distance = -1;
 
-bool sendATCommand(const char* command , const int timeout) {
-  MySerial0.write(command);
-  MySerial0.flush();
-  delay(5000);  // 応答を待つための適切な遅延を設定
+bool sendATCommand(const char *command, const int timeout)
+{
+    MySerial0.write(command);
+    MySerial0.flush();
+    delay(5000); // 応答を待つための適切な遅延を設定
 
-  while (MySerial0.available()) {
+    while (MySerial0.available())
+    {
+        String response = MySerial0.readStringUntil('\n');
+        Serial.println(response);
+
+        // エラーチェック
+        if (response.indexOf("ERROR") != -1)
+        {
+            return false; // エラーが検出された場合
+        }
+    }
+
+    return true;
+}
+
+bool sendBody(const char *command)
+{
+    MySerial0.write("AT+SHBOD=1024,10000\r\n");
+    MySerial0.flush();
+    delay(1000);
+    MySerial0.write(command);
+    MySerial0.flush();
     String response = MySerial0.readStringUntil('\n');
     Serial.println(response);
+    response += MySerial0.readStringUntil('\n');
+    String temp;
+    do
+    {
+        temp = MySerial0.readStringUntil('\n');
+        delay(1000);
+        response += temp;
 
-    // エラーチェック
-    if  (response.indexOf("ERROR") != -1)  {
-      return false;  // エラーが検出された場合
+    } while (temp == "OK" || temp == "ERROR" || temp == "");
+    delay(3000);
+
+    // エラーチェックとテキスト形式のレスポンスの出力
+    if (response.indexOf("ERROR") != -1)
+    {
+        Serial.println("Error in response");
+        return false;
     }
-  }
-
-  return true;  
-
+    else
+    {
+        Serial.println(response);
+        Serial.flush();
+        return true;
+    }
 }
 
-bool sendBody(const char* command ) {
-  MySerial0.write("AT+SHBOD=1024,10000\r\n"); 
-  MySerial0.flush();
-  delay(1000);
-  MySerial0.write(command);
-  MySerial0.flush();
-  String response = MySerial0.readStringUntil('\n');
-  Serial.println(response);
-  response += MySerial0.readStringUntil('\n');
-  String temp;
-  do {
-    temp = MySerial0.readStringUntil('\n');
-    delay(1000);
-    response += temp;
-    
-  } while (temp == "OK"||temp == "ERROR" || temp == "");
-  delay(3000);
+void serial_send(float distance)
+{
 
-// エラーチェックとテキスト形式のレスポンスの出力
-if (response.indexOf("ERROR") != -1) {
-  Serial.println("Error in response");
-  return false;
-} else {
-  Serial.println(response);
-  Serial.flush();
-  return true;
+    if (!sendATCommand("AT+CFUN=6\r\n", NORMALTIMEOUT))
+    {
+        Serial.println("Error: AT+CFUN=6");
+        return;
+    }
+    delay(BIGTIMEOUT);
+
+    if (!sendATCommand("AT+CGDCONT=1,\"IP\",\"soracom.io\"\r\n", NORMALTIMEOUT))
+    {
+        Serial.println("Error: AT+CGDCONT=1");
+        return;
+    }
+    delay(SMALLTIMEOUT);
+    // for (int i = 0; i <= 5; i++) {
+    if (!sendATCommand("AT+CNACT=0,1\r\n", BIGTIMEOUT))
+    {
+        Serial.println("Error: AT+CNACT");
+        delay(1000);
+
+        return;
+    }
+    delay(BIGTIMEOUT);
+
+    if (!sendATCommand("AT+SHCONF=\"URL\",\"http://harvest.soracom.io\"\r\n", NORMALTIMEOUT))
+    {
+        Serial.println("Error: AT+SHCONF URL");
+        return;
+    }
+    delay(SMALLTIMEOUT);
+
+    if (!sendATCommand("AT+SHCONF=\"BODYLEN\",1024\r\n", NORMALTIMEOUT))
+    {
+        Serial.println("Error: AT+SHCONF BODYLEN");
+        return;
+    }
+    delay(SMALLTIMEOUT);
+
+    if (!sendATCommand("AT+SHCONF=\"HEADERLEN\",350\r\n", NORMALTIMEOUT))
+    {
+        Serial.println("Error: AT+SHCONF HEADERLEN");
+        return;
+    }
+    delay(SMALLTIMEOUT);
+
+    if (!sendATCommand("AT+SHCONN\r\n", NORMALTIMEOUT))
+    {
+        Serial.println("Error: AT+SHCONN");
+        return;
+    }
+    delay(SMALLTIMEOUT);
+
+    if (!sendATCommand("AT+SHAHEAD=\"Content-Type\",\"application/json\"\r\n", NORMALTIMEOUT))
+    {
+        Serial.println("Error: AT+SHAHEAD");
+        return;
+    }
+    delay(SMALLTIMEOUT);
+
+    String distance_json = "\"distance\":" + String(distance);
+    String All_data = "{" + distance_json + "}\r\n";
+
+    if (!sendBody(All_data.c_str()))
+    {
+        Serial.println("Error: JSON Data");
+        return;
+    }
+    delay(SMALLTIMEOUT);
+
+    if (!sendATCommand("AT+SHREQ=\"http://harvest.soracom.io\",3\r\n", POSTTIMEOUT))
+    {
+        Serial.println("Error: AT+SHREQ");
+        return;
+    }
+    delay(NORMALTIMEOUT);
+
+    if (!sendATCommand("AT+SHDISC\r\n", NORMALTIMEOUT))
+    {
+        Serial.println("Error: AT+SHDISC");
+        return;
+    }
+
+    Serial.println("done");
 }
-
-}
-
-
-void serial_send(float distance) {
-
-
-  if (!sendATCommand("AT+CFUN=6\r\n",NORMALTIMEOUT)) {
-    Serial.println("Error: AT+CFUN=6");
-    return;
-  }
-  delay(BIGTIMEOUT);
-
-  if (!sendATCommand("AT+CGDCONT=1,\"IP\",\"soracom.io\"\r\n",NORMALTIMEOUT)) {
-    Serial.println("Error: AT+CGDCONT=1");
-    return;
-  }
-  delay(SMALLTIMEOUT);
-   //for (int i = 0; i <= 5; i++) {
-    if (!sendATCommand("AT+CNACT=0,1\r\n",BIGTIMEOUT)) {
-      Serial.println("Error: AT+CNACT");
-      delay(1000);
-      
-      return;
-  }
-  delay(BIGTIMEOUT);
-
-  if (!sendATCommand("AT+SHCONF=\"URL\",\"http://harvest.soracom.io\"\r\n",NORMALTIMEOUT)) {
-    Serial.println("Error: AT+SHCONF URL");
-    return;
-  }
-  delay(SMALLTIMEOUT);
-
-
-
-
-  if (!sendATCommand("AT+SHCONF=\"BODYLEN\",1024\r\n",NORMALTIMEOUT)) {
-    Serial.println("Error: AT+SHCONF BODYLEN");
-    return;
-  }
-  delay(SMALLTIMEOUT);
-
-  if (!sendATCommand("AT+SHCONF=\"HEADERLEN\",350\r\n",NORMALTIMEOUT)) {
-    Serial.println("Error: AT+SHCONF HEADERLEN");
-    return;
-  }
-  delay(SMALLTIMEOUT);
-
-  if (!sendATCommand("AT+SHCONN\r\n",NORMALTIMEOUT)) {
-    Serial.println("Error: AT+SHCONN");
-    return;
-  }
-  delay(SMALLTIMEOUT);
-
-  if (!sendATCommand("AT+SHAHEAD=\"Content-Type\",\"application/json\"\r\n",NORMALTIMEOUT)) {
-    Serial.println("Error: AT+SHAHEAD");
-    return;
-  }
-  delay(SMALLTIMEOUT);
-
-  
-
-  String distance_json = "\"distance\":" + String(distance);
-  String All_data = "{" + distance_json +"}\r\n";
-
-
-  if (!sendBody(All_data.c_str())) {
-    Serial.println("Error: JSON Data");
-    return;
-  }
-  delay(SMALLTIMEOUT);
-
-  if (!sendATCommand("AT+SHREQ=\"http://harvest.soracom.io\",3\r\n",POSTTIMEOUT)) {
-    Serial.println("Error: AT+SHREQ");
-    return;
-  }
-  delay(NORMALTIMEOUT);
-
-  if (!sendATCommand("AT+SHDISC\r\n",NORMALTIMEOUT)) {
-    Serial.println("Error: AT+SHDISC");
-    return;
-  }
-
-  Serial.println("done");
-}
-
-
 
 void setup()
 {
@@ -164,6 +175,7 @@ void setup()
     digitalWrite(ledPin, HIGH); // センサ類電源をONにする
     Serial.println("ON");
     count = 0;
+
 }
 
 void loop()
@@ -209,12 +221,12 @@ void loop()
     delay(1000);
     Serial.println("stand by");
     serial_send(distance/10);
-    count = 0;
     digitalWrite(ledPin, LOW); // センサ類電源をOFFにする
     Serial.println("OFF");
-    delay(15000);
+    delay(35000);
     digitalWrite(ledPin, HIGH); // センサ類電源をONにする
     Serial.println("ON");
     distance = -1;
+    count = 0;
     }
 }
