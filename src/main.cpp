@@ -1,35 +1,63 @@
+/*
+  *@File  : DFRobot_Distance_A02.ino 
+  *@Brief : This example use A02YYUW ultrasonic sensor to measure distance
+  *         With initialization completed, We can get distance value 
+  *@Copyright [DFRobot](https://www.dfrobot.com),2016         
+  *           GUN Lesser General Pulic License
+  *@version V1.0           
+  *@data  2019-8-28
+*/
 #include <Arduino.h>
 #include <SPI.h>
-#include "driver/gpio.h"
+#include <Wire.h>
+
 // Need this for the lower level access to set them up.
-#include "esp_bt_main.h"
-#include "esp_bt.h"
-#include "esp_wifi.h"
-const int SWITCH_PIN = 2; // Xiao C3のGPIO2ピンを使用
-RTC_DATA_ATTR int counter = 0;  //RTC coprocessor領域に変数を宣言することでスリープ復帰後も値が保持できる
-const int  SLEEPTIME_SECONDS = 2000; //秒
-void esp32c3_deepsleep(uint8_t sleep_time, uint8_t wakeup_gpio) {
-  // スリープ前にwifiとBTを明示的に止めないとエラーになる
-  esp_bluedroid_disable();
-  esp_bt_controller_disable();
-  esp_wifi_stop();
-  esp_deep_sleep_enable_gpio_wakeup(BIT(wakeup_gpio), ESP_GPIO_WAKEUP_GPIO_HIGH);  // 設定したIOピンがHIGHになったら目覚める
-  esp_deep_sleep(1000 * 1000 * sleep_time);
+#include <HardwareSerial.h>
+
+//Define two Serial devices mapped to the two internal UARTs
+HardwareSerial MySerial0(0);
+HardwareSerial MySerial1(1);
+unsigned char data[4]={};
+float distance;
+
+void setup()
+{
+ Serial.begin(57600);
+// Configure MySerial0 on pins TX=6 and RX=7 (-1, -1 means use the default)
+ MySerial0.begin(9600, SERIAL_8N1, -1, -1);
+ MySerial1.begin(9600, SERIAL_8N1, 9, 10);
+ MySerial0.print("MySerial0");
 }
 
+void loop()
+{
+    Serial.print("distance=");
+    do{
+     for(int i=0;i<4;i++)
+     {
+       data[i]=MySerial1.read();
+     }
+  }while(MySerial1.read()==0xff);
 
-void setup() {
-  pinMode(SWITCH_PIN, OUTPUT); // ピンを出力として設定
-  digitalWrite(SWITCH_PIN, HIGH);
-  Serial.begin(57600);
-  Serial.println("Go to DeepSleep!!");
-  digitalWrite(SWITCH_PIN, LOW); // センサ類をOFFにする
-  esp32c3_deepsleep(SLEEPTIME_SECONDS, 2);  //スリープタイム スリープ中にGPIO2がHIGHになったら目覚める
+  MySerial1.flush();
+
+  if(data[0]==0xff)
+    {
+      int sum;
+      sum=(data[0]+data[1]+data[2])&0x00FF;
+      if(sum==data[3])
+      {
+        distance=(data[1]<<8)+data[2];
+        if(distance>30)
+          {
+           Serial.print("distance=");
+           Serial.print(distance/10);
+           Serial.println("cm");
+          }else 
+             {
+               Serial.println("Below the lower limit");
+             }
+      }else Serial.println("ERROR");
+     }
+     delay(100);
 }
-
-void loop() {
-  // put your main code here, to run repeatedly:
-}
-
-
-
