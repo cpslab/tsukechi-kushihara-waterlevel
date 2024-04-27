@@ -2,10 +2,14 @@
 #include <SPI.h>
 // Need this for the lower level access to set them up.
 #include <HardwareSerial.h>
+const int ledPin = 4; // Xiao C3のGPIO4ピンを使用
+
+
 
 // Define two Serial devices mapped to the two internal UARTs
 HardwareSerial MySerial0(0);
-const int ledPin = 4; // Xiao C3のGPIO4ピンを使用
+HardwareSerial MySerial1(1);
+
 
 int PORTLATE = 57600;
 int BIGTIMEOUT = 10000;
@@ -13,8 +17,11 @@ int POSTTIMEOUT = 60000;
 int NORMALTIMEOUT = 5000;
 int SMALLTIMEOUT = 1000;
 
+unsigned char data[4] = {};
+
+
 int count = 0;
-float distance;
+float distance = -1;
 
 bool sendATCommand(const char *command, const int timeout)
 {
@@ -163,20 +170,63 @@ void setup()
     Serial.begin(PORTLATE);
     // Configure MySerial0 on pins TX=6 and RX=7 (-1, -1 means use the default)
     MySerial0.begin(PORTLATE, SERIAL_8N1, -1, -1);
-    count = 0;
+    MySerial1.begin(9600, SERIAL_8N1, 9, 10);
     pinMode(ledPin, OUTPUT); // ピンを出力として設定
+    digitalWrite(ledPin, HIGH); // センサ類電源をONにする
+    Serial.println("ON");
+    count = 0;
+
 }
 
 void loop()
 {
+    do
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            data[i] = MySerial1.read();
+        }
+    } while (MySerial1.read() == 0xff);
+
+    MySerial1.flush();
+
+    if (data[0] == 0xff)
+    {
+        int sum;
+        sum = (data[0] + data[1] + data[2]) & 0x00FF;
+        if (sum == data[3])
+        {
+            distance = (data[1] << 8) + data[2];
+            if (distance > 30)
+            {
+                Serial.print("distance=");
+                Serial.print(distance / 10);
+                Serial.println("cm");
+            }
+            else
+            {
+                Serial.println("Below the lower limit");
+            }
+        }
+        else
+            Serial.println("ERROR");
+    }
+    delay(100);
+    count += 1;
+
+    if (count > 200 || distance != -1)//デバッグで＆から変更
+    {
     delay(5000);
-    digitalWrite(ledPin, HIGH); // LEDをONにする
-    Serial.println("ON");
     Serial.println("start");
+    delay(1000);
     Serial.println("stand by");
-    serial_send(10);
-    digitalWrite(ledPin, LOW); // LEDをOFFにする
+    serial_send(distance/10);
+    digitalWrite(ledPin, LOW); // センサ類電源をOFFにする
     Serial.println("OFF");
     delay(35000);
+    digitalWrite(ledPin, HIGH); // センサ類電源をONにする
+    Serial.println("ON");
+    distance = -1;
     count = 0;
+    }
 }

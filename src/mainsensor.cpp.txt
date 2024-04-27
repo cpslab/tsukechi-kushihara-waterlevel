@@ -25,6 +25,7 @@ void setup()
  Serial.begin(57600);
 // Configure MySerial0 on pins TX=6 and RX=7 (-1, -1 means use the default)
  MySerial0.begin(9600, SERIAL_8N1, -1, -1);
+ MySerial1.begin(9600, SERIAL_8N1, 9, 10);
  MySerial0.print("MySerial0");
 }
 
@@ -34,11 +35,11 @@ void loop()
     do{
      for(int i=0;i<4;i++)
      {
-       data[i]=MySerial0.read();
+       data[i]=MySerial1.read();
      }
-  }while(MySerial0.read()==0xff);
+  }while(MySerial1.read()==0xff);
 
-  MySerial0.flush();
+  MySerial1.flush();
 
   if(data[0]==0xff)
     {
