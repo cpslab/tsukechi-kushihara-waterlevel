@@ -2,7 +2,7 @@
 #include <SPI.h>
 // Need this for the lower level access to set them up.
 #include <HardwareSerial.h>
-const int ledPin = 4; // Xiao C3のGPIO4ピンを使用
+const int ledPin = 2; // Xiao C3のGPIO4ピンを使用
 
 
 // Define two Serial devices mapped to the two internal UARTs
