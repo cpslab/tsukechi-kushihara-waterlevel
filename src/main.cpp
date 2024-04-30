@@ -177,9 +177,12 @@ void serial_send(float distance)
 
 
 void setup() {
+  Serial.begin(PORTLATE);
+  // Configure MySerial0 on pins TX=6 and RX=7 (-1, -1 means use the default)
+  MySerial0.begin(PORTLATE, SERIAL_8N1, -1, -1);
+  MySerial1.begin(9600, SERIAL_8N1, 9, 10);
   pinMode(SWITCH_PIN, OUTPUT); // ピンを出力として設定
   digitalWrite(SWITCH_PIN, HIGH);
-  Serial.begin(57600);
   distance = -1;
   count = 0;
 }
