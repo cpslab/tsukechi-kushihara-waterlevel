@@ -83,7 +83,6 @@ bool sendBody(const char *command)
     else
     {
         Serial.println(response);
-        Serial.flush();
         return true;
     }
 }
