@@ -1,26 +1,43 @@
 #include <Arduino.h>
 #include <SPI.h>
+#include "driver/gpio.h"
 // Need this for the lower level access to set them up.
-#include <HardwareSerial.h>
+#include "esp_bt_main.h"
+#include "esp_bt.h"
+#include "esp_wifi.h"
 
 // Define two Serial devices mapped to the two internal UARTs
 HardwareSerial MySerial0(0);
-const int ledPin = 4; // Xiao C3のGPIO4ピンを使用
+HardwareSerial MySerial1(1);
 
+const int SWITCH_PIN = 2; // Xiao C3のGPIO2ピンを使用
+RTC_DATA_ATTR int counter = 0;  //RTC coprocessor領域に変数を宣言することでスリープ復帰後も値が保持できる
+const int  SLEEPTIME_SECONDS = 30; //秒(3600→1時間)
 int PORTLATE = 57600;
 int BIGTIMEOUT = 10000;
 int POSTTIMEOUT = 60000;
 int NORMALTIMEOUT = 5000;
 int SMALLTIMEOUT = 1000;
 
-int count = 0;
-float distance;
+unsigned char data[4] = {};
+
+int count;
+float distance = -1;
+
+void esp32c3_deepsleep(uint8_t sleep_time, uint8_t wakeup_gpio) {
+  // スリープ前にwifiとBTを明示的に止めないとエラーになる
+  esp_bluedroid_disable();
+  esp_bt_controller_disable();
+  esp_wifi_stop();
+  esp_deep_sleep_enable_gpio_wakeup(BIT(wakeup_gpio), ESP_GPIO_WAKEUP_GPIO_HIGH);  // 設定したIOピンがHIGHになったら目覚める
+  esp_deep_sleep(1000 * 1000 * sleep_time);
+}
 
 bool sendATCommand(const char *command, const int timeout)
 {
     MySerial0.write(command);
     MySerial0.flush();
-    delay(5000); // 応答を待つための適切な遅延を設定
+    delay(3000); // 応答を待つための適切な遅延を設定
 
     while (MySerial0.available())
     {
@@ -66,7 +83,6 @@ bool sendBody(const char *command)
     else
     {
         Serial.println(response);
-        Serial.flush();
         return true;
     }
 }
@@ -74,20 +90,12 @@ bool sendBody(const char *command)
 void serial_send(float distance)
 {
 
-    if (!sendATCommand("AT+CFUN=6\r\n", NORMALTIMEOUT))
-    {
-        Serial.println("Error: AT+CFUN=6");
-        return;
-    }
-    delay(BIGTIMEOUT);
-
     if (!sendATCommand("AT+CGDCONT=1,\"IP\",\"soracom.io\"\r\n", NORMALTIMEOUT))
     {
         Serial.println("Error: AT+CGDCONT=1");
         return;
     }
     delay(SMALLTIMEOUT);
-    // for (int i = 0; i <= 5; i++) {
     if (!sendATCommand("AT+CNACT=0,1\r\n", BIGTIMEOUT))
     {
         Serial.println("Error: AT+CNACT");
@@ -158,25 +166,68 @@ void serial_send(float distance)
     Serial.println("done");
 }
 
-void setup()
-{
-    Serial.begin(PORTLATE);
-    // Configure MySerial0 on pins TX=6 and RX=7 (-1, -1 means use the default)
-    MySerial0.begin(PORTLATE, SERIAL_8N1, -1, -1);
-    count = 0;
-    pinMode(ledPin, OUTPUT); // ピンを出力として設定
+
+void setup() {
+  Serial.begin(PORTLATE);
+  // Configure MySerial0 on pins TX=6 and RX=7 (-1, -1 means use the default)
+  MySerial0.begin(PORTLATE, SERIAL_8N1, -1, -1);
+  MySerial1.begin(9600, SERIAL_8N1, 9, 10);
+  pinMode(SWITCH_PIN, OUTPUT); // ピンを出力として設定
+  digitalWrite(SWITCH_PIN, HIGH);
+  distance = -1;
+  count = 0;
+   if (!sendATCommand("AT+CFUN=6\r\n", NORMALTIMEOUT))
+    {
+        Serial.println("Error: AT+CFUN=6");
+        return;
+    }
+    delay(NORMALTIMEOUT);
 }
 
-void loop()
-{
-    delay(5000);
-    digitalWrite(ledPin, HIGH); // LEDをONにする
-    Serial.println("ON");
+void loop() {
+  do
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            data[i] = MySerial1.read();
+        }
+    } while (MySerial1.read() == 0xff);
+
+    MySerial1.flush();
+
+    if (data[0] == 0xff)
+    {
+        int sum;
+        sum = (data[0] + data[1] + data[2]) & 0x00FF;
+        if (sum == data[3])
+        {
+            distance = (data[1] << 8) + data[2];
+            if (distance > 30)
+            {
+                Serial.print("distance=");
+                Serial.print(distance / 10);
+                Serial.println("cm");
+            }
+            else
+            {
+                Serial.println("Below the lower limit");
+            }
+        }
+        else
+            Serial.println("ERROR");
+    }
+    delay(100);
+    count += 1;
+
+    if (count > 50 || distance != -1)//デバッグで＆から変更
+    {
+    delay(5000);//シリアルコンソール確認用のdelay(本番では不要)
     Serial.println("start");
-    Serial.println("stand by");
-    serial_send(10);
-    digitalWrite(ledPin, LOW); // LEDをOFFにする
-    Serial.println("OFF");
-    delay(35000);
-    count = 0;
+    serial_send(distance/10);
+    digitalWrite(SWITCH_PIN, LOW); // センサ類をOFFにする
+    esp32c3_deepsleep(SLEEPTIME_SECONDS, 2);  //スリープタイム スリープ中にGPIO2がHIGHになったら目覚める
+    }
 }
+
+
+
