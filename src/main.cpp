@@ -21,7 +21,8 @@ int SMALLTIMEOUT = 1000;
 
 unsigned char data[4] = {};
 
-int count;
+
+int count = 0;
 float distance = -1;
 
 void esp32c3_deepsleep(uint8_t sleep_time, uint8_t wakeup_gpio) {
