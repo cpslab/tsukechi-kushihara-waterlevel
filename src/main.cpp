@@ -12,7 +12,7 @@ HardwareSerial MySerial1(1);
 
 const int SWITCH_PIN = 2; // Xiao C3のGPIO2ピンを使用
 RTC_DATA_ATTR int counter = 0;  //RTC coprocessor領域に変数を宣言することでスリープ復帰後も値が保持できる
-const int  SLEEPTIME_SECONDS = 30; //秒(3600→1時間)
+const int  SLEEPTIME_SECONDS = 3600; //秒(3600→1時間)
 int PORTLATE = 57600;
 int BIGTIMEOUT = 10000;
 int POSTTIMEOUT = 60000;
@@ -89,6 +89,12 @@ bool sendBody(const char *command)
 
 void serial_send(float distance)
 {
+     if (!sendATCommand("AT+CFUN=6\r\n", NORMALTIMEOUT))
+    {
+        Serial.println("Error: AT+CFUN=6");
+        return;
+    }
+    delay(3000);
 
     if (!sendATCommand("AT+CGDCONT=1,\"IP\",\"soracom.io\"\r\n", NORMALTIMEOUT))
     {
@@ -174,12 +180,6 @@ void setup() {
   digitalWrite(SWITCH_PIN, HIGH);
   distance = -1;
   count = 0;
-   if (!sendATCommand("AT+CFUN=6\r\n", NORMALTIMEOUT))
-    {
-        Serial.println("Error: AT+CFUN=6");
-        return;
-    }
-    delay(3000);
 }
 
 void loop() {
