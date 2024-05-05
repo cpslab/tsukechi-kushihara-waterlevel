@@ -37,7 +37,7 @@ bool sendATCommand(const char *command, const int timeout)
 {
     MySerial0.write(command);
     MySerial0.flush();
-    delay(3000); // 応答を待つための適切な遅延を設定
+    delay(5000); // 応答を待つための適切な遅延を設定
 
     while (MySerial0.available())
     {
@@ -95,50 +95,48 @@ void serial_send(float distance)
         Serial.println("Error: AT+CGDCONT=1");
         return;
     }
-    delay(SMALLTIMEOUT);
-    if (!sendATCommand("AT+CNACT=0,1\r\n", BIGTIMEOUT))
+    delay(1000);
+    if (!sendATCommand("AT+CNACT=0,1\r\n", NORMALTIMEOUT))
     {
         Serial.println("Error: AT+CNACT");
-        delay(1000);
-
         return;
     }
-    delay(BIGTIMEOUT);
+    delay(5000);
 
     if (!sendATCommand("AT+SHCONF=\"URL\",\"http://harvest.soracom.io\"\r\n", NORMALTIMEOUT))
     {
         Serial.println("Error: AT+SHCONF URL");
         return;
     }
-    delay(SMALLTIMEOUT);
+    delay(1000);
 
     if (!sendATCommand("AT+SHCONF=\"BODYLEN\",1024\r\n", NORMALTIMEOUT))
     {
         Serial.println("Error: AT+SHCONF BODYLEN");
         return;
     }
-    delay(SMALLTIMEOUT);
+    delay(1000);
 
     if (!sendATCommand("AT+SHCONF=\"HEADERLEN\",350\r\n", NORMALTIMEOUT))
     {
         Serial.println("Error: AT+SHCONF HEADERLEN");
         return;
     }
-    delay(SMALLTIMEOUT);
+    delay(1000);
 
     if (!sendATCommand("AT+SHCONN\r\n", NORMALTIMEOUT))
     {
         Serial.println("Error: AT+SHCONN");
         return;
     }
-    delay(SMALLTIMEOUT);
+    delay(1000);
 
     if (!sendATCommand("AT+SHAHEAD=\"Content-Type\",\"application/json\"\r\n", NORMALTIMEOUT))
     {
         Serial.println("Error: AT+SHAHEAD");
         return;
     }
-    delay(SMALLTIMEOUT);
+    delay(1000);
 
     String distance_json = "\"distance\":" + String(distance);
     String All_data = "{" + distance_json + "}\r\n";
@@ -148,14 +146,14 @@ void serial_send(float distance)
         Serial.println("Error: JSON Data");
         return;
     }
-    delay(SMALLTIMEOUT);
+    delay(2000);
 
     if (!sendATCommand("AT+SHREQ=\"http://harvest.soracom.io\",3\r\n", POSTTIMEOUT))
     {
         Serial.println("Error: AT+SHREQ");
         return;
     }
-    delay(NORMALTIMEOUT);
+    delay(2000);
 
     if (!sendATCommand("AT+SHDISC\r\n", NORMALTIMEOUT))
     {
@@ -181,7 +179,7 @@ void setup() {
         Serial.println("Error: AT+CFUN=6");
         return;
     }
-    delay(NORMALTIMEOUT);
+    delay(3000);
 }
 
 void loop() {
@@ -219,7 +217,7 @@ void loop() {
     delay(100);
     count += 1;
 
-    if (count > 50 || distance != -1)//デバッグで＆から変更
+    if (count > 100 || distance != -1)//デバッグで＆から変更
     {
     delay(5000);//シリアルコンソール確認用のdelay(本番では不要)
     Serial.println("start");
