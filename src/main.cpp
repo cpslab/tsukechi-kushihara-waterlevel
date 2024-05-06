@@ -12,7 +12,7 @@ HardwareSerial MySerial1(1);
 
 const int SWITCH_PIN = 2; // Xiao C3のGPIO2ピンを使用
 RTC_DATA_ATTR int counter = 0;  //RTC coprocessor領域に変数を宣言することでスリープ復帰後も値が保持できる
-const int  SLEEPTIME_SECONDS = 3600; //秒(3600→1時間)
+const uint64_t  SLEEPTIME_SECONDS = 3600; //秒(3600→1時間)
 int PORTLATE = 57600;
 int BIGTIMEOUT = 10000;
 int POSTTIMEOUT = 60000;
@@ -24,13 +24,12 @@ unsigned char data[4] = {};
 int count;
 float distance = -1;
 
-void esp32c3_deepsleep(uint8_t sleep_time, uint8_t wakeup_gpio) {
+void esp32c3_deepsleep(uint64_t sleep_time) {
   // スリープ前にwifiとBTを明示的に止めないとエラーになる
   esp_bluedroid_disable();
   esp_bt_controller_disable();
   esp_wifi_stop();
-  esp_deep_sleep_enable_gpio_wakeup(BIT(wakeup_gpio), ESP_GPIO_WAKEUP_GPIO_HIGH);  // 設定したIOピンがHIGHになったら目覚める
-  esp_deep_sleep(1000 * 1000 * sleep_time);
+  esp_deep_sleep(1000 * 1000 *sleep_time);
 }
 
 bool sendATCommand(const char *command, const int timeout)
@@ -223,7 +222,7 @@ void loop() {
     Serial.println("start");
     serial_send(distance/10);
     digitalWrite(SWITCH_PIN, LOW); // センサ類をOFFにする
-    esp32c3_deepsleep(SLEEPTIME_SECONDS, 2);  //スリープタイム スリープ中にGPIO2がHIGHになったら目覚める
+    esp32c3_deepsleep(SLEEPTIME_SECONDS);  //スリープタイム スリープ中にGPIO2がHIGHになったら目覚める
     }
 }
 
