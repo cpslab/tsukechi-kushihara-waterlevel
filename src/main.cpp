@@ -12,7 +12,7 @@ HardwareSerial MySerial1(1);
 
 const int SWITCH_PIN = 2; // Xiao C3のGPIO2ピンを使用
 RTC_DATA_ATTR int counter = 0;  //RTC coprocessor領域に変数を宣言することでスリープ復帰後も値が保持できる
-const uint64_t  SLEEPTIME_SECONDS = 40; //秒(3600→1時間)
+const uint64_t  SLEEPTIME_SECONDS = 3540; //秒(3600→1時間)
 int PORTLATE = 57600;
 int BIGTIMEOUT = 10000;
 int POSTTIMEOUT = 60000;
@@ -96,56 +96,56 @@ void serial_send(float distance)
             failureCount++;
             continue;
         }
-        delay(3000);
+        //delay(3000);
 
         if (!sendATCommand("AT+CGDCONT=1,\"IP\",\"soracom.io\"\r\n", NORMALTIMEOUT)) {
             Serial.println("Error: AT+CGDCONT=1");
             failureCount++;
             continue;
         }
-        delay(1000);
+        //delay(1000);
 
         if (!sendATCommand("AT+CNACT=0,1\r\n", NORMALTIMEOUT)) {
             Serial.println("Error: AT+CNACT");
             failureCount++;
             continue;
         }
-        delay(5000);
+        //delay(5000);
 
         if (!sendATCommand("AT+SHCONF=\"URL\",\"http://harvest.soracom.io\"\r\n", NORMALTIMEOUT)) {
             Serial.println("Error: AT+SHCONF URL");
             failureCount++;
             continue;
         }
-        delay(1000);
+        //delay(1000);
 
         if (!sendATCommand("AT+SHCONF=\"BODYLEN\",1024\r\n", NORMALTIMEOUT)) {
             Serial.println("Error: AT+SHCONF BODYLEN");
             failureCount++;
             continue;
         }
-        delay(1000);
+        //delay(1000);
 
         if (!sendATCommand("AT+SHCONF=\"HEADERLEN\",350\r\n", NORMALTIMEOUT)) {
             Serial.println("Error: AT+SHCONF HEADERLEN");
             failureCount++;
             continue;
         }
-        delay(1000);
+        //delay(1000);
 
         if (!sendATCommand("AT+SHCONN\r\n", NORMALTIMEOUT)) {
             Serial.println("Error: AT+SHCONN");
             failureCount++;
             continue;
         }
-        delay(1000);
+        //delay(1000);
 
         if (!sendATCommand("AT+SHAHEAD=\"Content-Type\",\"application/json\"\r\n", NORMALTIMEOUT)) {
             Serial.println("Error: AT+SHAHEAD");
             failureCount++;
             continue;
         }
-        delay(1000);
+        //delay(1000);
 
         String distance_json = "\"distance\":" + String(distance);
         String All_data = "{" + distance_json + "}\r\n";
@@ -155,14 +155,14 @@ void serial_send(float distance)
             failureCount++;
             continue;
         }
-        delay(2000);
+        //delay(2000);
 
         if (!sendATCommand("AT+SHREQ=\"http://harvest.soracom.io\",3\r\n", POSTTIMEOUT)) {
             Serial.println("Error: AT+SHREQ");
             failureCount++;
             continue;
         }
-        delay(2000);
+        //delay(2000);
 
         if (!sendATCommand("AT+SHDISC\r\n", NORMALTIMEOUT)) {
             Serial.println("Error: AT+SHDISC");
@@ -232,7 +232,7 @@ void loop() {
 
     if (count > 100 || distance != -1)//デバッグで＆から変更
     {
-    delay(5000);//シリアルコンソール確認用のdelay(本番では不要)
+    //delay(5000);//シリアルコンソール確認用のdelay(本番では不要)
     Serial.println("start");
     serial_send(distance/10);
     digitalWrite(SWITCH_PIN, LOW); // センサ類をOFFにする
